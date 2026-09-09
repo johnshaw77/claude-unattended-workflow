@@ -58,7 +58,7 @@ dev server 的埠（Vite 預設 5173、CRA 3000）很容易被其他東西佔用
 
 | 網址 | 回應 |
 |---|---|
-| `localhost:5173`（dev server 沒跑時） | 某個 Docker 容器裡的 QMS 系統 |
+| `localhost:5173`（dev server 沒跑時） | 某個 Docker 容器裡的另一個專案 |
 | `localhost:5199` | 才是當下在開發的專案 |
 
 ### 兩道防線
