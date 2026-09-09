@@ -46,8 +46,23 @@ README.md 給第一次看到專案的人讀：這是什麼、怎麼跑、結構�
 
 ## Git
 
-一般互動開發：不要自己 commit，等使用者說。
-永遠不要自己 push。commit 前先看 `git status`。'
+**一般互動開發：不要自己 commit，等使用者說。** 他常常想先看過改動再決定。
+（無人值守模式的規則不同，見下方——那時要每完成一項就 commit。）
+
+規則：
+
+- **永遠不要自己 `push`。** commit 是本地的、可以反悔；push 是對外動作，
+  一定要使用者明說。
+- commit 訊息用祈使句寫「做了什麼」，必要時空一行補「為什麼」。
+- commit 前先確認 `git status`，不要順手把不相干的檔案一起帶進去。
+- 開新 repo 時尊重使用者既有的分支慣例（看 `git config init.defaultBranch`）。
+
+`docs/transcripts/` 若要進版控，先掃過一次再 commit——那是逐字紀錄，
+可能含 `.env` 內容、API key、內部主機名：
+
+```
+grep -rioE "api[_-]key|secret|password|token|BEGIN.*PRIVATE KEY" docs/transcripts/*.html
+```'
 
 marker="$cwd/.claude/UNATTENDED"
 if [ -f "$marker" ]; then
