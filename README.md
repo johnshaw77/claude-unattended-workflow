@@ -26,6 +26,11 @@
   相反解讀」才問你。
 - **Web 完成定義**：測試全綠 + UI 改動要用 Chrome MCP 實際走一次流程並截圖 +
   console 零 error/warning + 回報要具體。
+- **後端完成定義**：改了 API 就要真的打一次 endpoint（正常與錯誤路徑都打）、
+  看服務 log、確認 migration。框架不拘，Fastify / Express / FastAPI / Django / Go
+  都適用。
+- **Docker**：有 compose 就用 compose 跑，不要手動起服務。改了程式要確認容器
+  真的重建。`down -v` 會刪資料，一定要先問。
 - **文件分流**：README 保持精簡；取捨寫 `docs/DECISIONS.md`、驗證寫
   `docs/VERIFICATION.md`，兩者逐次追加不改寫。
 - **Git**：互動開發時不自己 commit，永遠不自己 push。
@@ -35,15 +40,30 @@
 
 ### 2. 完成度守門員（Stop hook）
 
-Claude 想結束回合時攔一次，實際去跑：
+Claude 想結束回合時攔一次，檢查三件事：
 
-- `npm test`（有 `typecheck` 也一起跑）— 沒過就把錯誤輸出塞回去要求繼續修
-- 檢查這次有沒有改到 UI 檔案卻**整場沒用過 Chrome MCP** — 有的話擋下來要求實測
+**一、測試與型別**。支援多種語言，並且**認得 monorepo**——它會從這次改動的檔案
+往上找最近的專案根，只跑被影響到的那些：
 
-**只擋一次**（檢查 `stop_hook_active`），避免 dev server 起不來時無限迴圈。
+| 偵測到 | 執行 |
+|---|---|
+| `package.json` | `npm run test`、`npm run typecheck`（有才跑） |
+| `pyproject.toml` / `pytest.ini` | `pytest -q` |
+| `go.mod` | `go test ./...` |
+| `Cargo.toml` | `cargo test` |
+
+改 `frontend/` 不會被 `backend/` 的失敗連累，反之亦然。
+
+**二、改了 UI 卻整場沒用過 Chrome MCP** → 擋下來要求實測。
+
+**三、改了 API／路由卻整場沒打過任何 endpoint** → 擋下來要求真的呼叫一次。
+（偵測 `curl`、`httpie`、`requests`、`fetch`、`TestClient`、`supertest`、`httpx`，
+或用過瀏覽器。）
+
+**只擋一次**（檢查 `stop_hook_active`），避免服務起不來時無限迴圈。
 它是提醒，不是牢籠。
 
-不是 Node 專案、或這場對話沒改過檔案，都會直接放行。
+這場對話沒改過檔案、或找不到任何專案根，都會直接放行。
 專案要豁免就建立 `.claude/.no-verify`。
 
 ### 3. 互動／無人值守模式切換

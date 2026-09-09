@@ -30,6 +30,42 @@ base='## 決策：不要停下來問
 開頁面後先確認 <title> 是這個專案的——埠口可能被別的服務佔用，連錯了會對著
 別人的畫面截圖還以為驗證通過。
 
+## 後端的完成定義
+
+**改了 API 就要真的打一次 endpoint。** 語言框架不拘（Fastify、Express、FastAPI、
+Django、Go 都一樣），通用規則是：
+
+1. 把服務跑起來，確認它**活著**（health endpoint 或任一已知路由回 2xx）。
+2. **實際呼叫你改到的 endpoint**，檢查狀態碼與回傳結構——正常路徑與錯誤路徑
+   都要打（例如缺欄位、查不到的 id）。
+3. **看服務的 log**，確認沒有例外或堆疊追蹤。
+4. 動到資料庫的話，確認 migration 已套用、schema 是預期的樣子。
+
+單元測試通過**不等於**服務跑得起來。啟動失敗、路由沒註冊、middleware 順序錯、
+環境變數缺漏、依賴注入接錯——這些單元測試全都抓不到，只有真的打一次才會現形。
+
+回報時要寫「打了什麼、拿到什麼」，例如：
+`POST /api/users 缺 email → 400 {"error":"email is required"}`。
+
+## Docker
+
+專案有 `docker-compose.yml` / `compose.yaml` 就**用 compose 跑，不要手動起服務**——
+手動起的環境變數、網路、依賴服務都跟實際不同，驗過了也不算數。
+
+```bash
+docker compose up -d
+docker compose ps                          # 確認每個服務都是 running/healthy
+docker compose logs --tail=50 <service>    # 看 log（取代 tmux capture-pane）
+```
+
+- 改了程式碼後要確認容器**真的重建**了，不是跑舊 image：
+  `docker compose up -d --build`，或確認有掛 volume 做 hot reload。
+- 服務起不來先看 log，不要瞎猜。
+- compose 對外開的埠可能跟別的專案衝突（`docker ps` 看得到）。這是驗證時
+  連錯服務的主因，所以開頁面一定要先確認 title。
+- **不要自己 `docker compose down -v`**——那會刪掉 volume 裡的資料。要清除資料
+  一定要先問使用者。
+
 ## 文件要寫到對的地方
 
 README.md 給第一次看到專案的人讀：這是什麼、怎麼跑、結構。保持精簡穩定，
