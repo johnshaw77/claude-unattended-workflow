@@ -126,6 +126,11 @@ scripts/
   transcript2html.py      JSONL → HTML（純標準庫）
 ```
 
+## 遇到問題
+
+看 [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)：守門員沒擋、改了 plugin
+沒生效、**埠口衝突導致驗證假通過**、存檔沒產生、無人值守關不掉。
+
 ## 授權
 
 MIT
