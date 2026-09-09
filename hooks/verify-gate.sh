@@ -11,6 +11,10 @@
 # 逃生開關：專案根放 .claude/.no-verify，或設 CLAUDE_SKIP_VERIFY=1
 set -uo pipefail
 
+# stdout 只能有我們要回傳的那一份 JSON。任何子指令不小心印到 stdout 的東西
+# 都會弄壞它，所以把 fd 1 整個導到 stderr，另外留 fd 3 給真正的輸出。
+exec 3>&1 1>&2
+
 input=$(cat)
 j() { printf '%s' "$input" | jq -r "$1" 2>/dev/null; }
 
@@ -20,7 +24,7 @@ j() { printf '%s' "$input" | jq -r "$1" 2>/dev/null; }
 cwd=$(j '.cwd // ""')
 [ -n "$cwd" ] && cd "$cwd" 2>/dev/null || exit 0
 
-block() { jq -n --arg r "$1" '{decision:"block", reason:$r}'; exit 0; }
+block() { jq -n --arg r "$1" '{decision:"block", reason:$r}' >&3; exit 0; }
 
 [ -f .claude/.no-verify ] && exit 0
 [ "${CLAUDE_SKIP_VERIFY:-}" = "1" ] && exit 0
@@ -71,7 +75,11 @@ run_capped() {   # run_capped <秒> <輸出檔> <指令...>
   ( sleep "$secs"; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 </dev/null &
   local w=$!
   wait "$pid"; local rc=$?
-  kill -9 "$w" 2>/dev/null; wait "$w" 2>/dev/null
+  # 先殺看門狗的子行程（那個 sleep），再殺看門狗本身。
+  # 只殺 $w 的話，sleep 會變孤兒繼續跑滿秒數，一場對話下來會累積幾十個。
+  pkill -9 -P "$w" 2>/dev/null
+  kill -9 "$w" 2>/dev/null
+  wait "$w" 2>/dev/null
   pkill -9 -P "$pid" 2>/dev/null
   return $rc
 }

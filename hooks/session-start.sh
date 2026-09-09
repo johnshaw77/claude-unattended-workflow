@@ -7,11 +7,15 @@
 # 另外偵測 <專案>/.claude/UNATTENDED，有的話追加無人值守的行為準則。
 set -uo pipefail
 
+# stdout 只能有我們要回傳的那一份 JSON。任何子指令不小心印到 stdout 的東西
+# 都會弄壞它，所以把 fd 1 整個導到 stderr，另外留 fd 3 給真正的輸出。
+exec 3>&1 1>&2
+
 input=$(cat)
 
 # 沒有 jq 就什麼都動不了。與其靜靜失效，不如講清楚為什麼。
 if ! command -v jq >/dev/null 2>&1; then
-  printf '%s\n' '{"systemMessage":"unattended-workflow: jq not found, so the workflow rules were not loaded. Install jq (macOS: brew install jq / Windows: winget install jqlang.jq) and restart Claude Code."}'
+  printf '%s\n' >&3 '{"systemMessage":"unattended-workflow: jq not found, so the workflow rules were not loaded. Install jq (macOS: brew install jq / Windows: winget install jqlang.jq) and restart Claude Code."}'
   exit 0
 fi
 
@@ -133,5 +137,5 @@ if [ -f "$marker" ]; then
 fi
 
 jq -n --arg c "$base" \
-  '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $c}}'
+  '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $c}}' >&3
 exit 0

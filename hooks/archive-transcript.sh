@@ -9,6 +9,10 @@
 # 失敗絕不影響關閉流程（一律 exit 0）。
 set -uo pipefail
 
+# stdout 只能有我們要回傳的那一份 JSON。任何子指令不小心印到 stdout 的東西
+# 都會弄壞它，所以把 fd 1 整個導到 stderr，另外留 fd 3 給真正的輸出。
+exec 3>&1 1>&2
+
 input=$(cat)
 j() { printf '%s' "$input" | jq -r "$1" 2>/dev/null; }
 
