@@ -123,6 +123,32 @@ tmux attach -t claude   # 回來接上
 
 被中斷了可以 `claude --resume` 或 `claude -c` 接續。
 
+### 選配：一鍵啟動腳本
+
+`bin/unattended` 把「建立標記檔 + 開 tmux + 啟動 Claude Code」包成一個指令。
+它**不會自動安裝**（plugin 不能動你的 PATH），要用的話自己接上：
+
+```bash
+mkdir -p ~/.local/bin
+cp <這個 repo>/bin/unattended ~/.local/bin/
+chmod +x ~/.local/bin/unattended
+# 確認 ~/.local/bin 在 PATH 裡，沒有的話加進 ~/.zshrc
+```
+
+然後：
+
+```bash
+cd <專案>
+git checkout -b feat/xxx
+unattended "把 SPEC.md 的六項功能做完"
+tmux attach -t claude-<專案>      # 進去貼任務
+```
+
+它會先檢查 tmux 與 claude 存在、session 沒重複、目前不在 `main` 上，
+並在 claude 結束時自動清掉標記檔。
+
+不裝也完全沒差——`/unattended` 指令加上手動開 tmux 是一樣的效果。
+
 ## 走人前檢查清單
 
 - [ ] Claude Code 跑在 tmux 裡
@@ -144,6 +170,8 @@ commands/
   transcripts.md          /transcripts
 scripts/
   transcript2html.py      JSONL → HTML（純標準庫）
+bin/
+  unattended              選配：一鍵啟動（需自行放進 PATH）
 ```
 
 ## 遇到問題

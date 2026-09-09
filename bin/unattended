@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# 啟動一次「無人值守」的 Claude Code 執行。
+#
+#   unattended "把 SPEC.md 的六項功能做完"
+#   unattended                          # 不給備註也可以
+#
+# 它會做三件事：
+#   1. 在專案建立 .claude/UNATTENDED 標記（SessionStart hook 會讀到）
+#   2. 開一個 tmux session，讓它不會因為你關掉視窗而中斷
+#   3. 在裡面啟動 Claude Code
+#
+# 結束後標記會自動清掉。
+set -uo pipefail
+
+NOTE="${1:-}"
+PROJ="$PWD"
+NAME="claude-$(basename "$PROJ" | tr -c 'a-zA-Z0-9_-' '-')"
+
+# --- 前置檢查 ---
+command -v tmux >/dev/null || { echo "✗ 沒有安裝 tmux：brew install tmux"; exit 1; }
+command -v claude >/dev/null || { echo "✗ 找不到 claude 指令"; exit 1; }
+
+if tmux has-session -t "$NAME" 2>/dev/null; then
+  echo "✗ session「$NAME」已經在跑了。"
+  echo "  接上： tmux attach -t $NAME"
+  echo "  關掉： tmux kill-session -t $NAME"
+  exit 1
+fi
+
+if git -C "$PROJ" rev-parse --git-dir >/dev/null 2>&1; then
+  branch=$(git -C "$PROJ" branch --show-current 2>/dev/null)
+  case "$branch" in
+    main|master)
+      echo "⚠️  目前在 $branch 上。無人值守建議開分支做："
+      echo "     git checkout -b feat/<項目>"
+      printf "   還是要繼續？[y/N] "
+      read -r ans
+      [ "$ans" = "y" ] || [ "$ans" = "Y" ] || exit 1
+      ;;
+  esac
+fi
+
+# --- 建立標記 ---
+mkdir -p "$PROJ/.claude"
+printf '%s\n' "$NOTE" > "$PROJ/.claude/UNATTENDED"
+
+# --- 開 tmux 並啟動，結束後自動清掉標記 ---
+tmux new-session -d -s "$NAME" -c "$PROJ" \
+  "claude; rm -f '$PROJ/.claude/UNATTENDED'"
+
+cat <<EOF
+✓ 無人值守已啟動
+
+  session   $NAME
+  專案      $PROJ
+  備註      ${NOTE:-（無）}
+
+  接上看進度   tmux attach -t $NAME
+  走人（脫離） Ctrl+b 放開，再按 d
+  強制結束     tmux kill-session -t $NAME && rm -f '$PROJ/.claude/UNATTENDED'
+
+現在接上去把任務貼給它。
+EOF
