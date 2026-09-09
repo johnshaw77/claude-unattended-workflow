@@ -14,7 +14,41 @@
 
 裝完**重開 Claude Code**（hook 設定在對話開始時載入）。
 
-需要 `jq` 和 `python3`。轉檔功能只用 Python 標準庫，不必 pip install。
+### 系統需求
+
+| 需要 | 為什麼 | 沒有的話 |
+|---|---|---|
+| `bash` | 三個 hook 都是 bash 腳本 | **完全不會運作** |
+| `jq` | hook 解析輸入、輸出 JSON | **完全不會運作**（會顯示提示訊息） |
+| `python3` 或 `python` | 對話紀錄轉 HTML | 只有存檔功能失效，其餘正常 |
+| `tmux` | 選配的 `bin/unattended` | 只影響那支選配腳本 |
+
+轉檔只用 Python 標準庫，不必 `pip install`。
+
+**macOS / Linux**：`bash` 內建，其餘用套件管理員裝。
+
+```bash
+brew install jq          # macOS
+sudo apt install jq      # Debian/Ubuntu
+```
+
+**Windows**：Claude Code 在沒有 Git Bash 時會用 PowerShell 跑 hook，
+而本 plugin 的 hook 是 bash 腳本，所以**必須有 Git Bash**（裝
+[Git for Windows](https://git-scm.com/download/win) 就有，多數開發者已經有了）。
+
+```powershell
+winget install Git.Git          # 提供 bash
+winget install jqlang.jq        # 提供 jq
+```
+
+Windows 上的其他注意事項：
+
+- Python 通常叫 `python` 而不是 `python3`——plugin 兩個都會試，不用特別處理。
+- **`tmux` 在原生 Windows 上沒有**。要無人值守跑很久，用 WSL，或改用
+  Windows Terminal 開一個獨立分頁不要關掉。`/unattended` 指令本身不受影響。
+- 排錯文件裡的 `lsof` 指令在 Windows 要換成 `netstat -ano | findstr :5173`。
+
+缺 `jq` 時 plugin 不會靜靜失效——它會在對話開始時顯示一則訊息告訴你原因。
 
 ## 它做四件事
 

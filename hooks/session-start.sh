@@ -8,6 +8,13 @@
 set -uo pipefail
 
 input=$(cat)
+
+# 沒有 jq 就什麼都動不了。與其靜靜失效，不如講清楚為什麼。
+if ! command -v jq >/dev/null 2>&1; then
+  printf '%s\n' '{"systemMessage":"unattended-workflow: jq not found, so the workflow rules were not loaded. Install jq (macOS: brew install jq / Windows: winget install jqlang.jq) and restart Claude Code."}'
+  exit 0
+fi
+
 cwd=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 

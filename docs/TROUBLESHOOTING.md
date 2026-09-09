@@ -81,7 +81,13 @@ server: { port: 5199, strictPort: true }
 ### 查誰佔用某個埠
 
 ```bash
+# macOS / Linux
 lsof -nP -iTCP:5173 -sTCP:LISTEN
+
+# Windows（PowerShell 或 cmd）
+netstat -ano | findstr :5173
+
+# 兩邊都適用
 docker ps --format '{{.Names}}\t{{.Ports}}' | grep 5173
 ```
 

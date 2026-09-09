@@ -17,12 +17,16 @@ cwd=$(j '.cwd // ""')
 SCRIPT="${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py"
 
 [ -n "$tp" ] && [ -f "$tp" ] && [ -f "$SCRIPT" ] || exit 0
-command -v python3 >/dev/null || exit 0
 
-python3 "$SCRIPT" "$tp" >/dev/null 2>&1 || true
+# Windows 的 Python 通常叫 python 而不是 python3
+PY=""
+for c in python3 python; do command -v "$c" >/dev/null && { PY="$c"; break; }; done
+[ -n "$PY" ] || exit 0
+
+"$PY" "$SCRIPT" "$tp" >/dev/null 2>&1 || true
 
 if [ -n "$cwd" ] && [ -d "$cwd/docs/transcripts" ]; then
-  python3 "$SCRIPT" --here "$cwd" >/dev/null 2>&1 || true
+  "$PY" "$SCRIPT" --here "$cwd" >/dev/null 2>&1 || true
 fi
 
 exit 0
