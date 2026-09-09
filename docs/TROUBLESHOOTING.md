@@ -32,7 +32,7 @@ Plugin 更新是**看版號**的。內容改了但 `plugin.json` 的 `version` �
 # 改完內容後
 jq '.version = "0.3.0"' .claude-plugin/plugin.json > /tmp/p && mv /tmp/p .claude-plugin/plugin.json
 git commit -am "..."
-claude plugin update solo-workflow
+claude plugin update unattended-workflow
 # 然後重開 Claude Code
 ```
 

@@ -1,4 +1,4 @@
-# solo-workflow
+# claude-unattended-workflow
 
 讓 Claude Code 能**一路做到底再回報**，而不是做兩步就停下來問你——並且把每次
 對話存成可調閱的 HTML。
@@ -8,8 +8,8 @@
 ## 安裝
 
 ```
-/plugin marketplace add <你的 GitHub 帳號>/claude-solo-workflow
-/plugin install solo-workflow
+/plugin marketplace add johnshaw77/claude-unattended-workflow
+/plugin install unattended-workflow
 ```
 
 裝完**重開 Claude Code**（hook 設定在對話開始時載入）。

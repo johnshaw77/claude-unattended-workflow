@@ -1,13 +1,13 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "solo-workflow-marketplace",
+  "name": "claude-unattended-workflow",
   "description": "Workflow plugins for running Claude Code unattended with verification gates",
   "owner": {
     "name": "john_hsiao"
   },
   "plugins": [
     {
-      "name": "solo-workflow",
+      "name": "unattended-workflow",
       "source": "./",
       "description": "Always-on rules, completion gate, mode switch, transcript archive"
     }
