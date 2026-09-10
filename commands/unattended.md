@@ -1,7 +1,7 @@
 ---
 description: "切換無人值守模式：不停下來問、每完成一項就 commit"
 argument-hint: "[on|off|status] [任務備註]"
-allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(test:*)", "Bash(git status:*)", "Bash(git branch:*)", "Write"]
+allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(test:*)", "Bash(git status:*)", "Bash(git branch:*)", "Write", "Bash(python3:*)"]
 ---
 
 # 切換無人值守模式
@@ -24,12 +24,26 @@ allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bas
 
 1. 用 Bash 確認目前專案根目錄，建立 `.claude/` 並把備註寫進 `.claude/UNATTENDED`
    （沒有備註就寫空檔）。
-2. 檢查 git 狀態：
+2. **順手把對話存檔打開**（沒開的話）。這一步很重要：無人值守正是最需要
+   事後調閱的情境，而使用者不會記得要另外去開。
+
+   `<專案>/docs/transcripts/` 不存在的話，執行：
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
+   ```
+
+   建立之後，SessionEnd hook 每次對話結束都會自動更新，不必再手動跑。
+   回報時附上一句「對話存檔已啟用，回來後開 `docs/transcripts/index.html` 調閱」。
+
+   已經存在就跳過，不用重跑。
+
+3. 檢查 git 狀態：
    - 不是 git repo → 提醒無法自動 commit，問要不要先 `git init`（**這題要問**，
      因為此刻使用者還在）。
    - 在 `main` 上（或其他預設分支） → **強烈建議**先開分支，並直接幫忙開一條
      `feat/<合理名稱>`，除非使用者已經在別的分支上。
-3. 回報已啟動，並把下面這段準則**明確複述一次**，因為從現在起你就要照著做：
+4. 回報已啟動，並把下面這段準則**明確複述一次**，因為從現在起你就要照著做：
 
 > 從現在開始，這個 session 進入無人值守模式：
 > 1. **絕對不要停下來問問題。** 遇到抉擇就自己選最合理的，理由寫進 `docs/DECISIONS.md`。
@@ -39,7 +53,7 @@ allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bas
 > 5. 卡住超過兩次嘗試就跳過該項、繼續下一項，最後在 README 的「未完成事項」說明。
 > 6. 全部做完後回報：完成什麼、跳過什麼、產生哪些 commit。
 
-4. 最後提醒使用者：可以 `Ctrl+b` `d` 脫離 tmux 然後離開；若不在 tmux 裡，
+5. 最後提醒使用者：可以 `Ctrl+b` `d` 脫離 tmux 然後離開；若不在 tmux 裡，
    關掉終端機會中斷任務。
 
 ## 關閉時要做的事
@@ -47,6 +61,7 @@ allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bas
 1. 刪掉 `.claude/UNATTENDED`。
 2. 回報已回到互動模式，並說明**從現在起不會再自動 commit**。
 3. 如果這次無人值守期間有產生 commit，用 `git log --oneline` 列出來給使用者看。
+4. 專案有 `docs/transcripts/` 的話，提醒可以開 `index.html` 調閱這輪的完整過程。
 
 ## 查詢時要做的事
 
