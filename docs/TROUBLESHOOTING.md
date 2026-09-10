@@ -32,7 +32,7 @@ Plugin 更新是**看版號**的。內容改了但 `plugin.json` 的 `version` �
 # 改完內容後
 jq '.version = "0.3.0"' .claude-plugin/plugin.json > /tmp/p && mv /tmp/p .claude-plugin/plugin.json
 git commit -am "..."
-claude plugin update unattended-workflow
+claude plugin update unattended
 # 然後重開 Claude Code
 ```
 
@@ -119,7 +119,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
 自動 commit。
 
 ```
-/unattended status     # 查
-/unattended off        # 關
+/unattended:mode status     # 查
+/unattended:mode off        # 關
 rm .claude/UNATTENDED  # 或直接刪
 ```

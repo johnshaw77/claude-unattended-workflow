@@ -116,7 +116,7 @@ dev server 在哪個埠、要不要 `docker compose up`。寫錯了守門員會�
 3. 下一步怎麼跑：
    ```
    git checkout -b feat/<名稱>
-   /unattended 依 SPEC.md 完成全部功能
+   /unattended:mode 依 SPEC.md 完成全部功能
    ```
    要真的走人的話，先把 Claude Code 跑在 tmux 裡（見 README）。
 

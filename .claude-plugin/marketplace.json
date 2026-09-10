@@ -7,7 +7,7 @@
   },
   "plugins": [
     {
-      "name": "unattended-workflow",
+      "name": "unattended",
       "source": "./",
       "description": "Always-on rules, completion gate, mode switch, transcript archive"
     }

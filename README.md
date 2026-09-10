@@ -8,7 +8,7 @@
 ## 完整流程
 
 ```
-  /spec  ─────►  你審一遍  ─────►  /unattended  ─────►  回來看
+  /unattended:spec  ─────►  你審一遍  ─────►  /unattended:mode  ─────►  回來看
     │                │                  │                  │
   談出規格        最後把關          離開現場            調閱紀錄
   SPEC.md                          tmux + 走人      transcripts/
@@ -25,7 +25,7 @@
 
 ```
 /plugin marketplace add johnshaw77/claude-unattended-workflow
-/plugin install unattended-workflow
+/plugin install unattended
 ```
 
 裝完**重開 Claude Code**（hook 設定在對話開始時載入）。
@@ -61,7 +61,7 @@ Windows 上的其他注意事項：
 
 - Python 通常叫 `python` 而不是 `python3`——plugin 兩個都會試，不用特別處理。
 - **`tmux` 在原生 Windows 上沒有**。要無人值守跑很久，用 WSL，或改用
-  Windows Terminal 開一個獨立分頁不要關掉。`/unattended` 指令本身不受影響。
+  Windows Terminal 開一個獨立分頁不要關掉。`/unattended:mode` 指令本身不受影響。
 - 排錯文件裡的 `lsof` 指令在 Windows 要換成 `netstat -ano | findstr :5173`。
 
 缺 `jq` 時 plugin 不會靜靜失效——它會在對話開始時顯示一則訊息告訴你原因。
@@ -91,7 +91,7 @@ Windows 上的其他注意事項：
 ### 2. 把想做的東西談成規格
 
 ```
-/spec 一個給團隊用的請假系統
+/unattended:spec 一個給團隊用的請假系統
 ```
 
 它會先看專案現況（技術棧、有沒有 compose、測試指令叫什麼），然後跟你把功能
@@ -160,9 +160,9 @@ Claude 想結束回合時攔一次，檢查三件事：
 ### 4. 互動／無人值守模式切換
 
 ```
-/unattended 把 SPEC.md 六項功能做完     開啟
-/unattended off                          關閉
-/unattended status                       查詢
+/unattended:mode 把 SPEC.md 六項功能做完     開啟
+/unattended:mode off                          關閉
+/unattended:mode status                       查詢
 ```
 
 開關是標記檔 `<專案>/.claude/UNATTENDED`——用檔案而不是靠語氣推測，因為
@@ -183,12 +183,12 @@ Claude 想結束回合時攔一次，檢查三件事：
 - 檢查 git：不是 repo 會問要不要 `git init`；還在 `main` 上會幫你開分支。
 
 ⚠️ **標記檔記得刪**，否則那個專案之後每次對話都會是無人值守。
-不確定就跑 `/unattended status`。
+不確定就跑 `/unattended:mode status`。
 
 ### 5. 對話紀錄存成 HTML
 
 ```
-/transcripts
+/unattended:transcripts
 ```
 
 把這個專案歷次對話轉成 HTML 放進 `docs/transcripts/`，含索引頁與全文搜尋。
@@ -244,7 +244,7 @@ tmux attach -t claude-<專案>      # 進去貼任務
 它會先檢查 tmux 與 claude 存在、session 沒重複、目前不在 `main` 上，
 並在 claude 結束時自動清掉標記檔。
 
-不裝也完全沒差——`/unattended` 指令加上手動開 tmux 是一樣的效果。
+不裝也完全沒差——`/unattended:mode` 指令加上手動開 tmux 是一樣的效果。
 
 ## 走人前檢查清單
 
@@ -252,7 +252,7 @@ tmux attach -t claude-<專案>      # 進去貼任務
 - [ ] 已用 `/spec` 寫好 `SPEC.md`，而且**你讀過一遍**
 - [ ] 任務有**客觀的**完成條件（測試全綠 / 某個檔案產出）
 - [ ] 已跑過 `/transcripts` 啟用存檔
-- [ ] 已 `/unattended <備註>` 開啟無人值守
+- [ ] 已 `/unattended:mode <備註>` 開啟無人值守
 - [ ] 在分支上，不是 `main`
 - [ ] dev server 的 port 沒被別的服務佔用（**驗證時先確認 `<title>` 是自己的專案**）
 
@@ -280,9 +280,9 @@ hooks/
   verify-gate.sh          Stop：測試沒綠、UI 沒驗過就擋
   archive-transcript.sh   SessionEnd：轉存 HTML
 commands/
-  spec.md                 /spec
-  unattended.md           /unattended
-  transcripts.md          /transcripts
+  spec.md                 /unattended:spec
+  mode.md                 /unattended:mode
+  transcripts.md          /unattended:transcripts
 scripts/
   transcript2html.py      JSONL → HTML（純標準庫）
 bin/

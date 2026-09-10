@@ -3,7 +3,7 @@
 #
 #   1. 一律更新全域封存      ~/.claude/transcripts/
 #   2. 專案若已「加入」，同時更新專案內的可分享版本
-#      加入方式：在專案跑一次 /transcripts（會建立 docs/transcripts/，
+#      加入方式：在專案跑一次 /unattended:transcripts（會建立 docs/transcripts/，
 #      那個資料夾的存在就是開關）
 #
 # 失敗絕不影響關閉流程（一律 exit 0）。
