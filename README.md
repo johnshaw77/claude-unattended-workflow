@@ -83,7 +83,8 @@ Windows 上的其他注意事項：
   真的重建。`down -v` 會刪資料，一定要先問。
 - **文件分流**：README 保持精簡；取捨寫 `docs/DECISIONS.md`、驗證寫
   `docs/VERIFICATION.md`，兩者逐次追加不改寫。
-- **Git**：互動開發時不自己 commit，永遠不自己 push。
+- **Git**：互動開發時不自己 commit，永遠不自己 push。commit 訊息（含標題）
+  一律繁體中文，技術名詞保留原文。
 
 > Plugin 無法寫入你的 `~/.claude/CLAUDE.md`，所以改用 SessionStart hook 注入，
 > 效果相同。你自己的 CLAUDE.md 仍然有效，兩者會疊加。
