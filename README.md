@@ -160,6 +160,10 @@ Claude 想結束回合時攔一次，檢查三件事：
 （偵測 `curl`、`httpie`、`requests`、`fetch`、`TestClient`、`supertest`、`httpx`，
 或用過瀏覽器。）
 
+**子 agent 做的事也算數。** 子 agent 的工具呼叫不會出現在母 session 的紀錄裡
+（母檔只看得到一次 `Agent` 呼叫），所以守門員會連同 `subagents/agent-*.jsonl`
+一起掃。少了這一步，把實作外包出去就等於把守門員關掉，而且它會**安靜地放行**。
+
 **只擋一次**（檢查 `stop_hook_active`），避免服務起不來時無限迴圈。
 它是提醒，不是牢籠。
 

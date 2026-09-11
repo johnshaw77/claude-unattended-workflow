@@ -100,6 +100,10 @@ README「它做五件事」那節與這段字串是同一份內容的兩個複�
 - 「改了 UI / API」是**副檔名與路徑樣式**判斷；「驗過了」是掃 transcript 有沒有
   `mcp__claude-in-chrome__` / `curl` / `requests.` / `TestClient` 等字樣。
   加新框架支援就是擴充這兩組 regex。
+- **一定要連 `subagents/` 一起掃**：子 agent 的工具呼叫只存在
+  `${transcript_path%.jsonl}/subagents/agent-*.jsonl`，母檔裡只有一次 `Agent`
+  呼叫。只掃母檔的話，實作一外包守門員就完全不作動——測試不跑、UI 不查，
+  而且是**安靜放行**。多檔 grep 記得加 `-h`，否則 `file_path` 會被冠上檔名前綴。
 - 逃生門：`.claude/.no-verify` 或 `CLAUDE_SKIP_VERIFY=1`。
 
 ### hooks/archive-transcript.sh —— 兩個觸發點，不能只留一個

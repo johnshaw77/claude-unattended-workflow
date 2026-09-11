@@ -33,9 +33,22 @@ block() { jq -n --arg r "$1" '{decision:"block", reason:$r}' >&3; exit 0; }
 tp=$(j '.transcript_path // ""')
 [ -f "$tp" ] || exit 0
 
-grep -q '"name":"\(Edit\|Write\|NotebookEdit\)"' "$tp" || exit 0   # 沒改過檔案
+# 子 agent 的工具呼叫**不會**出現在母 session 的紀錄裡——母檔只看得到一次
+# Agent 呼叫，實際的 Edit、Bash、瀏覽器操作全在獨立的
+# <母檔去掉副檔名>/subagents/agent-*.jsonl。
+# 不一起掃的話，把實作外包給子 agent 就等於把守門員關掉，而且它會安靜地放行。
+tps=("$tp")
+sub_dir="${tp%.jsonl}/subagents"
+if [ -d "$sub_dir" ]; then
+  for s in "$sub_dir"/*.jsonl; do
+    [ -f "$s" ] && tps+=("$s")
+  done
+fi
 
-edited_files=$(grep -oE '"file_path":"[^"]+"' "$tp" | sed 's/"file_path":"//;s/"$//' | sort -u)
+# 多檔時 grep 會在每行前面加檔名，-h 關掉（-q 不輸出所以不受影響）
+grep -q '"name":"\(Edit\|Write\|NotebookEdit\)"' "${tps[@]}" || exit 0   # 沒改過檔案
+
+edited_files=$(grep -ohE '"file_path":"[^"]+"' "${tps[@]}" | sed 's/"file_path":"//;s/"$//' | sort -u)
 [ -n "$edited_files" ] || exit 0
 
 ui_touched=0; api_touched=0
@@ -45,8 +58,8 @@ printf '%s\n' "$edited_files" \
   && api_touched=1
 
 browser_used=0; http_used=0
-grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' "$tp" && browser_used=1
-grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' "$tp" && http_used=1
+grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' "${tps[@]}" && browser_used=1
+grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' "${tps[@]}" && http_used=1
 # 開過瀏覽器就等於打過這個服務
 [ "$browser_used" = "1" ] && http_used=1
 
