@@ -142,6 +142,10 @@ stdout 只能有回傳給 Claude Code 的那一包 JSON，所以 fd 1 整個導�
 
 ## 慣例
 
+- **這個 repo 可以直接 commit 到 `main`，不必先開分支。** 單人維護，而且 plugin
+  marketplace 是從預設分支發布的——東西沒進 `main` 就等於沒發布，走分支只是多
+  繞一次 merge。這是**這個 repo 的例外**，不是通則。
+  - `push` 仍然要使用者明說。commit 是本地的、可以反悔；push 是對外動作。
 - **文件、注釋、commit 訊息一律繁體中文**，commit 標題那行也是，
   技術名詞與程式識別字保留原文。（`git log` 早期是英文，那是舊慣例，不要跟著寫。）
   這條規則的正本在 `hooks/session-start.sh` 的 `## Git` 那節。
