@@ -22,6 +22,16 @@
             "statusMessage": "檢查測試與瀏覽器驗證…"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/archive-transcript.sh\" --session",
+            "timeout": 60,
+            "statusMessage": "更新對話存檔…"
+          }
+        ]
       }
     ],
     "SessionEnd": [

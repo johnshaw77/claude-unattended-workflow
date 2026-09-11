@@ -98,7 +98,8 @@ docker ps --format '{{.Names}}\t{{.Ports}}' | grep 5173
 | 症狀 | 原因 |
 |---|---|
 | `docs/transcripts/` 沒東西 | 沒跑過 `/transcripts`——那個資料夾的存在就是開關 |
-| 有資料夾但沒更新 | 對話是被強制中斷的（SessionEnd hook 沒機會跑） |
+| 只看得到「上一場」對話 | 舊版只在 SessionEnd 轉檔。0.13.0 起 Stop hook 每輪也會更新 |
+| 落後一個回合 | 正常：Stop hook 是在回合**結束時**跑的 |
 | 完全沒有任何輸出 | 缺 `python3` 或 `jq` |
 
 手動補跑：
@@ -107,8 +108,11 @@ docker ps --format '{{.Names}}\t{{.Ports}}' | grep 5173
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
 ```
 
-被強制關閉時，**已寫出的檔案和 JSONL 原始紀錄都還在**，只是 HTML 沒更新。
-補跑一次就有了。
+被強制關閉時（`tmux kill-session`）SessionEnd 不會執行，但 Stop hook 已經在
+每個回合結束時更新過了，所以最多落後一個回合。
+
+而且**無論如何 JSONL 原始紀錄都還在** `~/.claude/projects/`——HTML 只是視圖，
+補跑一次就回來了，不會真的遺失任何東西。
 
 ---
 

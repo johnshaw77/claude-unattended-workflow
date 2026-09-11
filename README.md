@@ -195,8 +195,18 @@ Claude 想結束回合時攔一次，檢查三件事：
 把這個專案歷次對話轉成 HTML 放進 `docs/transcripts/`，含索引頁與全文搜尋。
 提問與回覆直接展開，思考過程、工具呼叫、工具輸出預設摺疊。
 
-跑過一次之後，`docs/transcripts/` 的存在就是**自動存檔的開關**——SessionEnd hook
-每次對話結束都會自動更新。不想要就刪掉那個資料夾。
+跑過一次之後，`docs/transcripts/` 的存在就是**自動存檔的開關**。不想要就刪掉
+那個資料夾。
+
+更新時機有兩個，**無人值守能不能事後調閱全靠前者**：
+
+| 時機 | 動作 | 為什麼需要 |
+|---|---|---|
+| 每輪回合結束（Stop） | 只重轉**這一場**對話（約 0.2 秒） | 無人值守一跑好幾小時，中途沒有 SessionEnd；沒有這個觸發點就只看得到「上一場」對話 |
+| 對話結束（SessionEnd） | 整個專案重掃一遍 | 補上任何漏掉的 session |
+
+tmux 被 `kill-session` 強制砍掉時 SessionEnd 根本不會執行——有了 Stop 這個
+觸發點，紀錄最多只會落後一個回合。
 
 全域封存另外放在 `~/.claude/transcripts/`（所有專案）。
 
@@ -279,7 +289,7 @@ tmux attach -t claude-<專案>      # 進去貼任務
 hooks/
   session-start.sh        注入常駐準則 + 偵測無人值守模式
   verify-gate.sh          Stop：測試沒綠、UI 沒驗過就擋
-  archive-transcript.sh   SessionEnd：轉存 HTML
+  archive-transcript.sh   Stop：更新這場對話的 HTML／SessionEnd：整個專案重掃
 commands/
   spec.md                 /unattended:spec
   mode.md                 /unattended:mode

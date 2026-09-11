@@ -20,7 +20,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
 並產生索引頁。
 
 `docs/transcripts/` 這個資料夾的存在同時也是**自動存檔的開關**——建立之後，
-SessionEnd hook 每次對話結束都會自動更新，不必再手動跑。
+hook 會自動更新，不必再手動跑：每輪回合結束時更新這一場，對話結束時整個專案
+重掃一遍。
 
 ## 執行後要回報
 

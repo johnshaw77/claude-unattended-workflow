@@ -4,7 +4,8 @@
 
 用法：
     transcript2html.py --here [專案路徑]          ★ 存進專案自己的 docs/transcripts/
-    transcript2html.py <file.jsonl> [--out 目錄]  轉單一 session
+    transcript2html.py --here <專案> <file.jsonl> 同上，但只轉這一個 session
+    transcript2html.py <file.jsonl>              轉單一 session（存到全域）
     transcript2html.py --all                     轉全部專案（存到全域）
     transcript2html.py --index                   只重建全域索引頁
 
@@ -366,14 +367,26 @@ def main():
     # ── 專案模式：輸出到 <專案>/docs/transcripts/，只收這個專案 ──
     if args[0] == "--here":
         proj = Path(args[1]).resolve() if len(args) > 1 else Path.cwd()
+        # 第三個參數 = 只轉這一個 session（Stop hook 用：對話進行中也要能更新，
+        # 不必為了一場對話把整個專案重轉一遍）。
+        only = Path(args[2]).resolve() if len(args) > 2 else None
         src = PROJECTS / project_dir_name(proj)
         if not src.is_dir():
             print(f"找不到這個專案的紀錄：{src}", file=sys.stderr)
             return 1
         out = proj / "docs" / "transcripts"
+
+        if only is not None:
+            targets = [only] if only.is_file() else []
+        else:
+            targets = sorted(src.rglob("*.jsonl"))
+
         ok = 0
-        for j in sorted(src.rglob("*.jsonl")):
-            sub = j.parent.relative_to(src)          # 保留 subagents/ 結構
+        for j in targets:
+            try:
+                sub = j.parent.relative_to(src)      # 保留 subagents/ 結構
+            except ValueError:
+                sub = Path(".")                      # 不在這個專案底下就平放
             try:
                 if convert(j, out / sub):
                     ok += 1

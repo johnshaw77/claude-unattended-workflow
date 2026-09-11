@@ -33,7 +33,8 @@ allowed-tools: ["Bash(ls:*)", "Bash(cat:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bas
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
    ```
 
-   建立之後，SessionEnd hook 每次對話結束都會自動更新，不必再手動跑。
+   建立之後 hook 會自動更新，不必再手動跑——**每輪回合結束就寫一次**，
+   所以無人值守跑到一半也能隨時開來看進度，不必等它整個結束。
    回報時附上一句「對話存檔已啟用，回來後開 `docs/transcripts/index.html` 調閱」。
 
    已經存在就跳過，不用重跑。
