@@ -1,7 +1,7 @@
 ---
 description: "把要做的東西談成一份 SPEC.md，給無人值守執行用"
 argument-hint: "[要做什麼的簡述]"
-allowed-tools: ["Read", "Write", "Edit", "Bash(ls:*)", "Bash(cat:*)", "Bash(jq:*)", "Bash(find:*)", "Bash(git:*)", "AskUserQuestion"]
+allowed-tools: ["Read", "Write", "Edit", "Bash(ls:*)", "Bash(cat:*)", "Bash(jq:*)", "Bash(find:*)", "Bash(git:*)", "Bash(python3:*)", "AskUserQuestion"]
 ---
 
 # 談出一份 SPEC.md
@@ -121,6 +121,25 @@ dev server 在哪個埠、要不要 `docker compose up`。寫錯了守門員會�
 
 把內容寫進專案根目錄的 `SPEC.md`。**永遠是覆蓋，不是追加**——舊的已經在
 上面那步歸檔到 `docs/specs/` 了。
+
+### 6.5 順手把對話存檔打開
+
+`<專案>/docs/transcripts/` **不存在的話**，執行一次：
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/transcript2html.py" --here
+```
+
+已經存在就跳過，不用重跑。
+
+為什麼在這裡做：那個資料夾的存在**就是自動存檔的開關**，而寫完規格就等於
+要動工了——這是使用者最後一次還在現場的時機。等他走人之後才發現沒開，
+整輪過程就只剩 `~/.claude/transcripts/` 的全域封存，沒有可以 commit、
+可以分享的那一份。
+
+回報時附一句「對話存檔已啟用，回來後開 `docs/transcripts/index.html` 調閱」。
+
+（`/unattended:mode` 也會做同一件事。兩邊都做是刻意的——使用者可能只跑其中一個。）
 
 寫完後回報時**一定要包含這四點**：
 
