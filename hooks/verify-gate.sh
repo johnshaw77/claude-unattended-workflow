@@ -45,11 +45,29 @@ if [ -d "$sub_dir" ]; then
   done
 fi
 
-# 多檔時 grep 會在每行前面加檔名，-h 關掉（-q 不輸出所以不受影響）
-grep -q '"name":"\(Edit\|Write\|NotebookEdit\)"' "${tps[@]}" || exit 0   # 沒改過檔案
+# 這裡一定要用 jq 解析出「真正的工具呼叫」，不能對整份 JSONL 做 grep。
+# 因為 JSONL 裡同時存著 tool_result，也就是**讀過的檔案原文**，全文 grep 會
+# 雙向誤判：
+#   讀過（但沒改）一個 .tsx        → 被當成改了 UI，沒開瀏覽器就誤擋
+#   讀到的程式碼裡有 curl / fetch( → 被當成打過 endpoint，而且是**安靜放行**
+# 後者正是這個守門員最該避免的失效方式，所以判斷依據只能是工具呼叫本身。
+#
+# 多檔時 grep 會在每行前面加檔名，-h 關掉。先 grep 再交給 jq 是為了只解析
+# 有工具呼叫的那幾行，不必整份重新 parse。
+jq_tool_use() {   # $1 = 接在 select(tool_use) 之後的 jq 表達式
+  grep -h '"type":"tool_use"' "${tps[@]}" 2>/dev/null \
+    | jq -Rr "fromjson? | .message.content[]? | select(.type == \"tool_use\") | $1" 2>/dev/null
+}
 
-edited_files=$(grep -ohE '"file_path":"[^"]+"' "${tps[@]}" | sed 's/"file_path":"//;s/"$//' | sort -u)
-[ -n "$edited_files" ] || exit 0
+# NotebookEdit 的路徑欄位叫 notebook_path 不是 file_path，兩個都要取。
+edited_files=$(jq_tool_use '
+  select(.name == "Edit" or .name == "Write" or .name == "NotebookEdit")
+  | (.input.file_path // .input.notebook_path // empty)' | sort -u)
+[ -n "$edited_files" ] || exit 0   # 沒改過檔案
+
+# 「有沒有真的驗過」只可能表現在兩個地方：工具名稱（瀏覽器 MCP）與 Bash 指令內容。
+# 取這兩者組成一行一筆，後面的比對都只掃這份，不再碰原始 JSONL。
+tool_calls=$(jq_tool_use '.name + " " + ((.input.command // "") | tostring)')
 
 ui_touched=0; api_touched=0
 printf '%s\n' "$edited_files" | grep -qiE '\.(tsx|jsx|vue|svelte|css|scss|less|html|astro)$' && ui_touched=1
@@ -58,8 +76,10 @@ printf '%s\n' "$edited_files" \
   && api_touched=1
 
 browser_used=0; http_used=0
-grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' "${tps[@]}" && browser_used=1
-grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' "${tps[@]}" && http_used=1
+printf '%s\n' "$tool_calls" | grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' && browser_used=1
+printf '%s\n' "$tool_calls" \
+  | grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' \
+  && http_used=1
 # 開過瀏覽器就等於打過這個服務
 [ "$browser_used" = "1" ] && http_used=1
 
@@ -97,6 +117,14 @@ run_capped() {   # run_capped <秒> <輸出檔> <指令...>
   return $rc
 }
 
+# hooks.json 給這支 hook 的 timeout 是 660 秒，但單步上限 300 秒 ×（專案根數量 ×
+# test/typecheck 兩步）很容易超過。被 harness 從外面砍掉時 hook 不會有任何輸出，
+# 看起來就跟「檢查通過」一樣——又是一次安靜放行。所以自己先抓一個全域預算，
+# 用完由我們主動回報還有哪些沒跑到。
+BUDGET=600
+budget_left() { local r=$(( BUDGET - SECONDS )); [ "$r" -lt 0 ] && r=0; printf '%s' "$r"; }
+step_cap()    { local r; r=$(budget_left); [ "$r" -gt 300 ] && r=300; printf '%s' "$r"; }
+
 fail() {   # fail <專案根> <這步叫什麼> <輸出檔>
   local out; out=$(tail -40 "$3" | sed $'s/\033\\[[0-9;]*[a-zA-Z]//g')
   rm -f "$3"
@@ -107,34 +135,46 @@ fail() {   # fail <專案根> <這步叫什麼> <輸出檔>
 $out"
 }
 
+skipped=""
 while IFS= read -r root; do
   [ -n "$root" ] || continue
+  if [ "$(budget_left)" -lt 15 ]; then
+    skipped="$skipped
+- $root"
+    continue
+  fi
   tmp=$(mktemp)
 
   if [ -f "$root/package.json" ]; then
     for s in test typecheck; do
       jq -e --arg s "$s" '.scripts[$s] // empty' "$root/package.json" >/dev/null 2>&1 || continue
-      run_capped 300 "$tmp" env CI=true npm --prefix "$root" run "$s" --silent \
+      # npm --prefix 會連 script 的 cwd 一起設成 $root，相對路徑的 fixture／config
+      # 讀得到，不必再包一層 cd。
+      run_capped "$(step_cap)" "$tmp" env CI=true npm --prefix "$root" run "$s" --silent \
         || fail "$root" "npm run $s" "$tmp"
     done
 
   elif [ -f "$root/pyproject.toml" ] || [ -f "$root/pytest.ini" ]; then
     if command -v pytest >/dev/null; then
-      run_capped 300 "$tmp" sh -c "cd '$root' && pytest -q" \
+      run_capped "$(step_cap)" "$tmp" sh -c "cd '$root' && pytest -q" \
         || fail "$root" "pytest" "$tmp"
     fi
 
   elif [ -f "$root/go.mod" ]; then
-    run_capped 300 "$tmp" sh -c "cd '$root' && go test ./..." \
+    run_capped "$(step_cap)" "$tmp" sh -c "cd '$root' && go test ./..." \
       || fail "$root" "go test ./..." "$tmp"
 
   elif [ -f "$root/Cargo.toml" ]; then
-    run_capped 300 "$tmp" sh -c "cd '$root' && cargo test" \
+    run_capped "$(step_cap)" "$tmp" sh -c "cd '$root' && cargo test" \
       || fail "$root" "cargo test" "$tmp"
   fi
 
   rm -f "$tmp"
 done <<< "$roots"
+
+[ -n "$skipped" ] && block "守門員的時間預算（${BUDGET} 秒）用完了，下面這幾個專案的測試**完全沒跑到**：
+$skipped
+請自己進去跑一次測試與型別檢查，全綠再結束；真的太慢就在 .claude/.no-verify 豁免這個專案，改用別的方式驗。"
 
 # ---------- 有沒有真的驗過 ----------
 if [ "$ui_touched" = "1" ] && [ "$browser_used" = "0" ]; then

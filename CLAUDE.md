@@ -85,11 +85,21 @@ README「它做五件事」那節與這段字串是同一份內容的兩個複�
 
 ### hooks/verify-gate.sh —— Stop 守門員
 
-流程：掃 transcript JSONL 找 `Edit/Write/NotebookEdit` → 取出 `file_path` →
+流程：用 jq 從 transcript JSONL 解析出 `Edit/Write/NotebookEdit` 的路徑 →
 從每個檔案往上找最近的專案根（`package.json` / `pyproject.toml` / `go.mod` /
 `Cargo.toml`）→ 只跑被影響到的那幾個專案的測試 → 再檢查有沒有真的驗過。
 
 幾個不能拆的設計：
+
+- **判斷依據只能是「工具呼叫」，不能對整份 JSONL 做 grep。** JSONL 裡同時存著
+  `tool_result`，也就是**讀過的檔案原文**，全文 grep 會雙向誤判：讀過但沒改的
+  `.tsx` 被當成改了 UI（誤擋），讀到的程式碼裡有 `curl` / `fetch(` 被當成打過
+  endpoint（**安靜放行**）。所以先 `grep '"type":"tool_use"'` 縮行，再交給
+  `jq_tool_use` 走 `.message.content[] | select(.type=="tool_use")` 取值。
+  「驗過了」只認兩個來源：**工具名稱**（`mcp__claude-in-chrome__` 等）與
+  **Bash 的 `command` 欄位**。加新框架支援是擴充那組 regex，不是放寬掃描範圍。
+- **`jq -Rr` + `fromjson?`**：一行解析失敗就跳過那行，不會讓整支 hook 掛掉。
+- `NotebookEdit` 的路徑欄位叫 `notebook_path` 不是 `file_path`，兩個都要取。
 
 - **只擋一次**：開頭檢查 `stop_hook_active`，是 true 就放行。故意的——
   否則 dev server 起不來時會無限迴圈。它是提醒，不是牢籠。
@@ -97,9 +107,12 @@ README「它做五件事」那節與這段字串是同一份內容的兩個複�
   變孤兒跑滿 300 秒，一場對話累積幾十個。`pkill -P` 那兩行不要刪。
 - **看門狗必須 `>/dev/null 2>&1 </dev/null`**：否則它會持有 hook 的輸出管道，
   讀取端等不到 EOF。
-- 「改了 UI / API」是**副檔名與路徑樣式**判斷；「驗過了」是掃 transcript 有沒有
-  `mcp__claude-in-chrome__` / `curl` / `requests.` / `TestClient` 等字樣。
-  加新框架支援就是擴充這兩組 regex。
+- 「改了 UI / API」是**副檔名與路徑樣式**判斷（`edited_files` 那兩組 regex）。
+- **全域時間預算 `BUDGET=600`**：`hooks.json` 給這支 hook 的 timeout 是 660 秒，
+  但單步 300 秒 ×（專案根數量 × test/typecheck）很容易超過。被 harness 從外面
+  砍掉時 hook 完全沒有輸出，看起來跟「檢查通過」一樣——又是一次安靜放行。
+  所以預算用完要主動 `block` 並列出哪些專案沒跑到。改 `hooks.json` 的 timeout
+  時，`BUDGET` 要跟著留一段餘裕。
 - **一定要連 `subagents/` 一起掃**：子 agent 的工具呼叫只存在
   `${transcript_path%.jsonl}/subagents/agent-*.jsonl`，母檔裡只有一次 `Agent`
   呼叫。只掃母檔的話，實作一外包守門員就完全不作動——測試不跑、UI 不查，
