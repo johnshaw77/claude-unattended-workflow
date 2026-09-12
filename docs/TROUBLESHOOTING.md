@@ -97,10 +97,28 @@ docker ps --format '{{.Names}}\t{{.Ports}}' | grep 5173
 
 | 症狀 | 原因 |
 |---|---|
-| `docs/transcripts/` 沒東西 | 沒跑過 `/transcripts`——那個資料夾的存在就是開關 |
+| **新專案完全沒有 `docs/transcripts/`** | 開關沒開。`/spec`、`/mode`、`/transcripts` 任一個都會建；一個都沒跑就不會有 |
+| 有資料夾但沒更新 | **裝的 plugin 版本太舊**（見下），或對話還在跑而你只等 SessionEnd |
 | 只看得到「上一場」對話 | 舊版只在 SessionEnd 轉檔。0.13.0 起 Stop hook 每輪也會更新 |
 | 落後一個回合 | 正常：Stop hook 是在回合**結束時**跑的 |
 | 完全沒有任何輸出 | 缺 `python3` 或 `jq` |
+
+### 先確認你裝的是哪一版
+
+**這是最容易被忽略的一項。** `claude plugin update` 沒跑、或跑了沒重開，
+裝的就還是舊版——新功能一個都沒有，但看起來 plugin 明明「有在運作」
+（因為舊版的常駐準則照樣注入）。
+
+```bash
+jq -r .version ~/.claude/plugins/marketplaces/claude-unattended-workflow/.claude-plugin/plugin.json
+jq -r '.hooks.Stop[].hooks[].command' ~/.claude/plugins/marketplaces/claude-unattended-workflow/hooks/hooks.json
+```
+
+Stop 只列出 `verify-gate.sh` 一行 → 舊版，沒有每輪存檔。應該要有兩行。
+
+```bash
+claude plugin update unattended     # 然後重開 Claude Code
+```
 
 手動補跑：
 
