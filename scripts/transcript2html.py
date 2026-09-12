@@ -371,10 +371,16 @@ def main():
         # 不必為了一場對話把整個專案重轉一遍）。
         only = Path(args[2]).resolve() if len(args) > 2 else None
         src = PROJECTS / project_dir_name(proj)
-        if not src.is_dir():
-            print(f"找不到這個專案的紀錄：{src}", file=sys.stderr)
-            return 1
         out = proj / "docs" / "transcripts"
+        if not src.is_dir():
+            # 這個專案還沒有任何紀錄（全新專案、或從沒在這裡開過對話）。
+            # 資料夾仍然要建——它的存在就是自動存檔的開關，hook 之後會自己填內容。
+            # 這裡回 0 不回 1：/spec 會在收尾時跑這支腳本，不該因為「還沒有紀錄」
+            # 就讓開關沒打開，那樣使用者走人之後整輪都不會被存下來。
+            out.mkdir(parents=True, exist_ok=True)
+            build_index(out, heading=f"{proj.name} · 對話紀錄", flat=True)
+            print(f"這個專案還沒有紀錄，先建立 {out}（自動存檔已啟用）")
+            return 0
 
         if only is not None:
             targets = [only] if only.is_file() else []
