@@ -69,17 +69,19 @@ edited_files=$(jq_tool_use '
 # 取這兩者組成一行一筆，後面的比對都只掃這份，不再碰原始 JSONL。
 tool_calls=$(jq_tool_use '.name + " " + ((.input.command // "") | tostring)')
 
+# 比對一律用 here-string，**不可以** `printf ... | grep -q`：
+# grep -q 找到第一筆就結束，輸入超過 pipe 緩衝（約 64KB）時 printf 會收到 SIGPIPE
+# 以 141 結束，在 pipefail 下整條 pipeline 判定失敗，`&& x=1` 不會執行。
+# 長 session 的 tool_calls 很容易超過 64KB，結果就是明明開過瀏覽器還被擋。
 ui_touched=0; api_touched=0
-printf '%s\n' "$edited_files" | grep -qiE '\.(tsx|jsx|vue|svelte|css|scss|less|html|astro)$' && ui_touched=1
-printf '%s\n' "$edited_files" \
-  | grep -qiE '(^|/)(routes?|router|controllers?|handlers?|api|endpoints?|views|serializers)(/|\.)|(^|/)(urls|main|server|app)\.(py|js|ts)$' \
-  && api_touched=1
+grep -qiE '\.(tsx|jsx|vue|svelte|css|scss|less|html|astro)$' <<< "$edited_files" && ui_touched=1
+grep -qiE '(^|/)(routes?|router|controllers?|handlers?|api|endpoints?|views|serializers)(/|\.)|(^|/)(urls|main|server|app)\.(py|js|ts)$' \
+  <<< "$edited_files" && api_touched=1
 
 browser_used=0; http_used=0
-printf '%s\n' "$tool_calls" | grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' && browser_used=1
-printf '%s\n' "$tool_calls" \
-  | grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' \
-  && http_used=1
+grep -q 'mcp__claude-in-chrome__\|chrome-devtools__' <<< "$tool_calls" && browser_used=1
+grep -qE '\bcurl\b|\bhttpie\b|requests\.(get|post|put|delete)|\bfetch\(|TestClient|supertest|\bhttpx\b' \
+  <<< "$tool_calls" && http_used=1
 # 開過瀏覽器就等於打過這個服務
 [ "$browser_used" = "1" ] && http_used=1
 
