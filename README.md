@@ -283,6 +283,12 @@ tmux attach -t claude-<專案>      # 進去貼任務
 
 不裝也完全沒差——`/unattended:mode` 指令加上手動開 tmux 是一樣的效果。
 
+## 進階：前後端平行開發
+
+想讓兩場 session 同時做前端和後端（先定資料規格、前端用 mock），
+看 [`docs/PARALLEL.md`](docs/PARALLEL.md)。那是一份用現有工具組起來的操作說明，
+plugin 本身沒有為此新增功能。多數 side project 其實不值得拆，文件開頭有判斷方式。
+
 ## 走人前檢查清單
 
 - [ ] Claude Code 跑在 tmux 裡
